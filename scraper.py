@@ -1,45 +1,39 @@
 import random
-import re
-
-import requests
-from bs4 import BeautifulSoup
-
-headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
+import vk_api
 
 
-def parse_profile(url):
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, 'lxml')
-    page_exists = soup.find('h1', {'class': 'page_name'})
+def users_parser(ids, session):
+    users = session.method('users.get', {'user_ids': ids, 'fields': 'bdate,status,counters,relation,'})
 
-    if page_exists:
-        try:
-            name = page_exists.text
-            age = int(soup.find_all('a', {'href': re.compile(r'^/search(.*?)byear(.*?)$')})[0].text.split()[0])
-            status = soup.find('span', {'class': 'current_text'}).text
-            groups = []
-            groups_links = []
+    return users
 
-            for group in soup.find_all('div', {'class': 'group_name'}):
-                link = group.find('a')
-                groups.append(link.text)
-                groups_links.append(link.get('href'))
 
-            groups = '\n'.join(groups)
-            groups_links = '\n'.join(groups_links)
+def divide_list(lst, n):
+    for x in range(0, len(lst), n):
+        e_c = lst[x:n + x]
 
-        except:
-            return False
-        else:
-            return {'name': name, 'age': age, 'status': status, 'groups': groups, 'groups_links': groups_links}
+        if len(e_c) < n:
+            e_c = e_c + [None for y in range(n - len(e_c))]
+        yield e_c
 
 
 def get_data(number):
-    for id in random.sample(range(1, 100000), number):
-        user = parse_profile(f'https://vk.com/id{id}')
+    ids = random.sample(range(1, 100000), number)
+    samples = divide_list(ids, 500)
+    users = []
 
-        if user:
-            print(id, user['name'], user['age'], user['status'], user['groups'], user['groups_links'])
+    for sample in samples:
+        sample = [str(id) for id in sample]
+        str_sample = ','.join(sample)
+        user = users_parser(str_sample, api_session)
+        users.append(user)
+
+    if users:
+        return users
 
 
-print(get_data(10000))
+if __name__ == '__main__':
+    api_session = vk_api.VkApi(token='vk1.a.3QmRiAaVUfLTCfAyMf2MiBJu1ZSR3SNHNpcwYMmorsLHvqA_EU7bvZ-ufB2X9FeHECO_zORAF6PsUw3dXE3fRqVQncbwDGACdaHLPmw8fQUitqIZaAQUhITgYPtea_ovPSjWBWE2j-F-aAkW8-tY2jEF3kDPMxqjMi5604oeAUKAwrfarj_ovi10OTDcMWeqLd8wj97XTRg6ghgSccF57w')
+    vk = api_session.get_api()
+
+    print(get_data(1000))
